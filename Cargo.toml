@@ -1,0 +1,8 @@
+[package]
+name = "voxel-mesher"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+save-format = { git = "https://github.com/rookieCookies/save-format" }
+glam = "*"
