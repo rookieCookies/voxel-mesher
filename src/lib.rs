@@ -147,10 +147,9 @@ pub fn greedy_mesh(
     dimensions: IVec3,
     vertices: &mut Vec<Vertex>,
     indices: &mut Vec<u32>,
+    scale: Vec3,
 ) -> bool {
     // sweep over each axis
-    let block_size = 1.0 / dimensions.as_vec3();
-
     for d in 0..3 {
         let u = (d + 1) % 3;
         let v = (d + 2) % 3;
@@ -262,9 +261,9 @@ pub fn greedy_mesh(
                     let mut du = du.as_vec3();
                     let mut dv = dv.as_vec3();
                     x -= dimensions.as_vec3() * 0.5;
-                    x = x * block_size;
-                    du = du * block_size;
-                    dv = dv * block_size;
+                    x = x * scale;
+                    du = du * scale;
+                    dv = dv * scale;
 
                     let quad = Quad {
                         colour: kind,

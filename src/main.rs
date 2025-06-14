@@ -1,6 +1,6 @@
 use std::{env, fs, io::BufRead};
 
-use glam::{IVec3, Vec3Swizzles};
+use glam::{IVec3, UVec3, Vec3Swizzles};
 use voxel_mesher::{greedy_mesh, Voxel, VoxelMesh};
 
 fn main() {
@@ -18,6 +18,8 @@ fn main() {
         println!("[!] missing output path. usage: voxel-mesher [input] [output]");
         return;
     };
+
+    let scale = args.next().unwrap_or("32".to_string());
 
     let Ok(data) = fs::read(&data_path)
     else {
@@ -86,7 +88,15 @@ fn main() {
     let mut vertices = vec![];
     let mut indices = vec![];
 
-    greedy_mesh(&colours, dims, &mut vertices, &mut indices);
+    let scale = match scale.as_str() {
+        "unit" => 1.0 / dims.as_vec3(),
+        _ => {
+            let scale = scale.parse::<u32>().unwrap();
+            1.0 / UVec3::splat(scale).as_vec3()
+        }
+    };
+
+    greedy_mesh(&colours, dims, &mut vertices, &mut indices, scale);
 
     let mesh = VoxelMesh { vertices, indices };
     let file = mesh.encode();
