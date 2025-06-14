@@ -9,7 +9,13 @@ fn main() {
 
     let Some(data_path) = args.next()
     else {
-        println!("[!] missing data file");
+        println!("[!] missing input file. usage: voxel-mesher [input] [output]");
+        return;
+    };
+
+    let Some(output_path) = args.next()
+    else {
+        println!("[!] missing output path. usage: voxel-mesher [input] [output]");
         return;
     };
 
@@ -89,6 +95,11 @@ fn main() {
     {
         let decoded_mesh = VoxelMesh::decode(&file).unwrap();
         assert_eq!(mesh, decoded_mesh)
+    }
+
+
+    if let Err(e) = fs::write(output_path, file) {
+        println!("[!] failed to write to the output path. {e}");
     }
 }
 

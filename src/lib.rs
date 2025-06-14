@@ -9,8 +9,8 @@ pub const VOXEL_MESH_VERSION : [u8; 4] = [0, 0, 0, 1];
 #[derive(PartialEq, Debug, Clone, Copy)]
 #[repr(C)]
 pub struct Vertex {
-    position: Vec3,
-    rgba: u32,
+    pub position: Vec3,
+    pub rgba: u32,
 }
 
 #[derive(Debug, Clone, Copy)]
