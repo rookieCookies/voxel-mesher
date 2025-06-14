@@ -149,7 +149,7 @@ pub fn greedy_mesh(
     indices: &mut Vec<u32>,
 ) -> bool {
     // sweep over each axis
-    let block_size = (1.0 / dimensions.as_vec3());
+    let block_size = 1.0 / dimensions.as_vec3();
 
     for d in 0..3 {
         let u = (d + 1) % 3;

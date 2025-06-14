@@ -1,6 +1,6 @@
 use std::{env, fs, io::BufRead};
 
-use glam::IVec3;
+use glam::{IVec3, Vec3Swizzles};
 use voxel_mesher::{greedy_mesh, Voxel, VoxelMesh};
 
 fn main() {
@@ -57,7 +57,7 @@ fn main() {
             else { break 'parse };
             let rgba = (rgb << 8) | 0xFF;
 
-            pos = IVec3::new(x, y, z);
+            pos = IVec3::new(x, z, y);
             colour = rgba;
             successful = true;
         }
@@ -79,7 +79,7 @@ fn main() {
 
     for voxel in voxels {
         let pos = voxel.pos - mins;
-        colours[(pos.y * dims.z * dims.x + pos.z * dims.x + pos.x) as usize] = voxel.colour;
+        colours[(pos.z * dims.y * dims.x + pos.y * dims.x + pos.x) as usize] = voxel.colour;
     }
 
 
