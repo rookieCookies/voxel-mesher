@@ -1,4 +1,4 @@
-use glam::{IVec3, USizeVec3, Vec3, Vec4};
+use glam::{IVec3, USizeVec3, Vec3};
 use save_format::byte::{ByteReader, ByteWriter};
 
 
@@ -142,55 +142,55 @@ impl Vertex {
 }
 
 
-pub fn greedy_mesh(rgba_data: &[u32], dims: USizeVec3, vertices: &mut Vec<Vertex>, indices: &mut Vec<u32>) -> bool {
-    assert_eq!(rgba_data.len(), dims.x * dims.y * dims.z);
-    let idims = dims.as_ivec3();
+pub fn greedy_mesh(
+    rgba: &[u32],
+    dimensions: IVec3,
+    vertices: &mut Vec<Vertex>,
+    indices: &mut Vec<u32>,
+) -> bool {
     // sweep over each axis
-    
-    let block_size = (1.0 / dims.as_vec3()).with_z(0.1);
+    let block_size = (1.0 / dimensions.as_vec3());
 
     for d in 0..3 {
         let u = (d + 1) % 3;
         let v = (d + 2) % 3;
         let mut x = IVec3::ZERO;
 
-        let mut block_mask = vec![(0u32, false); dims.x * dims.y * dims.z];
+        let chunk_size_u = dimensions[u] as usize;
+        let chunk_size_v = dimensions[v] as usize;
+        let mut block_mask = vec![(0, false); chunk_size_u * chunk_size_v];
 
-       
         x[d] = -1;
-        while x[d] < idims[d] {
+        while x[d] < dimensions[d] as i32 {
             let mut n = 0;
             x[v] = 0;
 
-            while x[v] < idims[v] {
+            while x[v] < dimensions[v] as i32 {
                 x[u] = 0;
 
-                while x[u] < idims[u] {
-
+                while x[u] < dimensions[u] as i32 {
                     let block_current = {
                         let r = x;
-                        let is_out_of_bounds =    r.x < 0
-                                               || r.y < 0
-                                               || r.z < 0;
+                        let is_out_of_bounds = r.x < 0 || r.y < 0 || r.z < 0;
 
                         if is_out_of_bounds {
                             0
                         } else {
-                            rgba_data[(r.z * idims.y * idims.x + r.y * idims.x + r.x) as usize]
+                            rgba[(r.z * dimensions.y * dimensions.x + r.y * dimensions.x + r.x) as usize]
                         }
                     };
 
                     let block_compare = {
                         let mut r = x;
                         r[d] += 1;
-                        let is_out_of_bounds =    r.x == idims.x
-                                               || r.y == idims.y
-                                               || r.z == idims.z;
+                        let is_out_of_bounds = r.x == dimensions.x as i32
+                            || r.y == dimensions.y as i32
+                            || r.z == dimensions.z as i32;
 
                         if is_out_of_bounds {
                             0
                         } else {
-                            rgba_data[(r.z * idims.y * idims.x + r.y * idims.x + r.x) as usize]
+                            rgba[(r.z * dimensions.y * dimensions.x + r.y * dimensions.x + r.x) as usize]
                         }
                     };
 
@@ -201,22 +201,20 @@ pub fn greedy_mesh(rgba_data: &[u32], dims: USizeVec3, vertices: &mut Vec<Vertex
                         (false, true) => (block_current, false),
                         (_, _) => (0, false),
                     };
-
                     n += 1;
+
                     x[u] += 1;
                 }
 
                 x[v] += 1;
             }
 
-
             x[d] += 1;
 
-
             let mut n = 0;
-            for j in 0..dims.x {
+            for j in 0..chunk_size_v {
                 let mut i = 0;
-                while i < dims.y {
+                while i < chunk_size_u {
                     if block_mask[n].0 == 0 {
                         i += 1;
                         n += 1;
@@ -225,35 +223,29 @@ pub fn greedy_mesh(rgba_data: &[u32], dims: USizeVec3, vertices: &mut Vec<Vertex
 
                     let (kind, neg_d) = block_mask[n];
 
-                    
-                    // Compute the width of this quad and store it in w                        
-                    //   This is done by searching along the current axis until mask[n + w] is false
+                    // Compute the width of this quad and store it in w
                     let mut w = 1;
-                    while i + w < dims.x && block_mask[n + w] == (kind, neg_d) { w += 1; }
+                    while i + w < chunk_size_u && block_mask[n + w] == (kind, neg_d) {
+                        w += 1;
+                    }
 
-
-                    // Compute the height of this quad and store it in h                        
-                    //   This is done by checking if every block next to this row (range 0 to w) is also part of the mask.
-                    //   For example, if w is 5 we currently have a quad of dimensions 1 x 5. To reduce triangle count,
-                    //   greedy meshing will attempt to expand this quad out to CHUNK_SIZE x 5, but will stop if it reaches a hole in the mask
-                    
+                    // Compute the height of this quad and store it in h
                     let mut done = false;
                     let mut h = 1;
-                    while j + h < dims.y {
+                    while j + h < chunk_size_v {
                         for k in 0..w {
-                            // if there's a hole in the mask, exit
-                            if block_mask[n + k + h * dims.x] != (kind, neg_d) {
+                            if block_mask[n + k + h * chunk_size_u] != (kind, neg_d) {
                                 done = true;
                                 break;
                             }
                         }
 
-
-                        if done { break }
+                        if done {
+                            break;
+                        }
 
                         h += 1;
                     }
-
 
                     x[u] = i as _;
                     x[v] = j as _;
@@ -269,41 +261,36 @@ pub fn greedy_mesh(rgba_data: &[u32], dims: USizeVec3, vertices: &mut Vec<Vertex
                     let mut x = x.as_vec3();
                     let mut du = du.as_vec3();
                     let mut dv = dv.as_vec3();
-                    if d == 1 {
-                        x = Vec3::new(x.z, x.y, x.x);
-                        du = Vec3::new(du.z, du.y, du.x);
-                        dv = Vec3::new(dv.z, dv.y, dv.x);
-                    }
-
-                    x -= dims.as_vec3() * 0.5;
+                    x -= dimensions.as_vec3() * 0.5;
                     x = x * block_size;
                     du = du * block_size;
                     dv = dv * block_size;
 
-
                     let quad = Quad {
-                                colour: kind,
-                                corners: if !neg_d {[
-                                    x,
-                                    (x+du),
-                                    (x+du+dv),
-                                    (x+dv),
-                                ]} else {[
-                                    (x+dv),
-                                    (x+du+dv),
-                                    (x+du),
-                                    x,
-                                ]
-                                },
-                            };
+                        colour: kind,
+                        corners: if !neg_d {
+                            [
+                                x,
+                                (x + du),
+                                (x + du + dv),
+                                (x + dv),
+                            ]
+                        } else {
+                            [
+                                (x + dv),
+                                (x + du + dv),
+                                (x + du),
+                                x,
+                            ]
+                        },
+                    };
 
                     draw_quad(vertices, indices, quad);
 
-
                     // clear this part of the mask so we don't add duplicates
-                    for h in 0..h  {
-                        for w in 0..w {
-                            block_mask[n+w+h*dims.x].0 = 0;
+                    for l in 0..h {
+                        for k in 0..w {
+                            block_mask[n + k + l * chunk_size_u].0 = 0;
                         }
                     }
 
@@ -312,7 +299,6 @@ pub fn greedy_mesh(rgba_data: &[u32], dims: USizeVec3, vertices: &mut Vec<Vertex
                     n += w;
                 }
             }
-
         }
     }
     true

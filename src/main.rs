@@ -79,14 +79,14 @@ fn main() {
 
     for voxel in voxels {
         let pos = voxel.pos - mins;
-        colours[(pos.z * dims.y * dims.x + pos.y * dims.x + pos.x) as usize] = voxel.colour;
+        colours[(pos.y * dims.z * dims.x + pos.z * dims.x + pos.x) as usize] = voxel.colour;
     }
 
 
     let mut vertices = vec![];
     let mut indices = vec![];
 
-    greedy_mesh(&colours, dims.as_usizevec3(), &mut vertices, &mut indices);
+    greedy_mesh(&colours, dims, &mut vertices, &mut indices);
 
     let mesh = VoxelMesh { vertices, indices };
     let file = mesh.encode();
