@@ -1,4 +1,5 @@
-use glam::{IVec3, USizeVec3, Vec3};
+use bytemuck::{Pod, Zeroable};
+use glam::{IVec3, USizeVec3, UVec3, Vec3};
 use save_format::byte::{ByteReader, ByteWriter};
 
 
@@ -6,7 +7,7 @@ pub const VOXEL_MESH_MAGIC : [u8; 10] = *b"VOXEL_MESH";
 pub const VOXEL_MESH_VERSION : [u8; 4] = [0, 0, 0, 1];
 
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, Pod, Zeroable)]
 #[repr(C)]
 pub struct Vertex {
     pub position: Vec3,
@@ -24,6 +25,22 @@ pub struct Quad {
 pub struct Voxel {
     pub pos: IVec3,
     pub colour: u32,
+}
+
+
+pub struct GridMap<T> {
+    map: Vec<T>,
+    dims: UVec3,
+}
+
+impl<T: Clone> GridMap<T> {
+    pub fn new(value: T, dims: UVec3) -> Self {
+        Self {
+            map: vec![value; (dims.x * dims.y * dims.z) as usize],
+            dims,
+        }
+    }
+
 }
 
 

@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 save-format = { git = "https://github.com/rookieCookies/save-format" }
-glam = "*"
+glam = { version = "*", features = ["bytemuck"] }
+bytemuck = { version = "*", features = ["derive"] }
